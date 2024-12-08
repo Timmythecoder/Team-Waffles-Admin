@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Team Waffles</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2b2b2b;
+            color: #f5f5f5;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #444;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #61dafb;
+        }
+
+        input,
+        button,
+        select {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        input {
+            width: calc(100% - 24px);
+        }
+
+        button {
+            background-color: #61dafb;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1d8efb;
+        }
+
+        select {
+            width: calc(100% - 24px);
+        }
+
+        .card-list,
+        .user-list {
+            margin-top: 20px;
+        }
+
+        .card-item,
+        .user-item {
+            padding: 10px;
+            background-color: #555;
+            border-radius: 5px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .error {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .card-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-item img {
+            margin-left: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .card-item button {
+            margin-left: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Admin Panel - Trading Cards</h1>
+
+        <!-- Section for Managing System-Wide Cards -->
+        <h2>Manage System Cards</h2>
+        <div>
+            <input type="text" id="system-card-name" placeholder="System Card Name">
+            <input type="text" id="system-card-rarity" placeholder="System Card Rarity">
+            <input type="text" id="system-card-image" placeholder="System Card Image URL">
+            <button id="add-system-card-btn">Add System Card</button>
+
+        </div>
+        <div class="card-list" id="system-card-list"></div>
+
+        <!-- Section for Managing Users -->
+        <h2>List Of Users</h2>
+        <div class="user-list" id="user-list"></div>
+
+        <!-- Section for Managing User Cards -->
+        <h2>Manage User Cards</h2>
+        <div>
+            <select id="action-select">
+                <option value="view">View Cards</option>
+                <option value="add">Add Card</option>
+                <option value="remove">Remove Card</option>
+            </select>
+
+
+            <select id="user-select"></select>
+            <br>
+            <br>
+            <input type="text" id="card-name" placeholder="Card Name">
+            <input type="text" id="card-rarity" placeholder="Card Rarity">
+            <input type="text" id="card-image" placeholder="Card Image URL">
+            <!-- <button id="add-card-btn">Add Card</button> -->
+            <button id="edit-card-btn" style="display: none;">Edit Card</button>
+
+
+            <!-- Add user-id input field -->
+            <input type="hidden" id="user-id">
+            <input type="text" id="card-name" placeholder="Card Name" style="display:none;">
+            <input type="text" id="card-rarity" placeholder="Card Rarity" style="display:none;">
+            <input type="text" id="card-image" placeholder="Card Image URL" style="display:none;">
+            <button id="action-btn">Go</button>
+        </div>
+        <br>
+        <br>
+        <div class="card-list" id="card-list"></div>
+    </div>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+        import { getDatabase, ref, get, update, remove } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const systemCardsRef = ref(db, 'system-cards');
+        const usersRef = ref(db, 'users');
+
+        // Fetch System Cards
+        async function fetchSystemCards() {
+            try {
+                const snapshot = await get(systemCardsRef);
+                if (snapshot.exists()) {
+                    const cards = snapshot.val();
+                    displaySystemCards(cards);
+                } else {
+                    document.getElementById('system-card-list').innerHTML = '<p>No system cards found.</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching system cards:', error);
+            }
+        }
+
+
+        document.getElementById('add-system-card-btn').addEventListener('click', async () => {
+            const name = document.getElementById('system-card-name').value;
+            const rarity = document.getElementById('system-card-rarity').value;
+            const image = document.getElementById('system-card-image').value;
+
+            console.log(`Adding system card with name: ${name}, rarity: ${rarity}, and image: ${image}`); // Debugging
+
+            if (name && rarity && image) {
+                const newCardRef = ref(db, `system-cards/${name}`);
+                try {
+                    await update(newCardRef, { name, rarity, image });
+                    console.log('System card added successfully!'); // Debugging
+                    showNotification('System card added successfully!', 'success');
+                    await fetchSystemCards();
+                } catch (error) {
+                    console.error('Error adding system card:', error);
+                    showNotification('Error adding system card.', 'error');
+                }
+            } else {
+                showNotification('Please fill in all fields.', 'error');
+            }
+        });
+
+        document.getElementById('add-system-card-btn').addEventListener('click', async () => {
+            const name = document.getElementById('system-card-name').value;
+            const rarity = document.getElementById('system-card-rarity').value;
+            const image = document.getElementById('system-card-image').value;
+
+            console.log(`Adding system card with name: ${name}, rarity: ${rarity}, and image: ${image}`); // Debugging
+
+            if (name && rarity && image) {
+                const newCardRef = ref(db, `system-cards/${name}`);
+                try {
+                    await update(newCardRef, { name, rarity, image });
+                    console.log('System card added successfully!'); // Debugging
+                    showNotification('System card added successfully!', 'success');
+                    await fetchSystemCards();
+                } catch (error) {
+                    console.error('Error adding system card:', error);
+                    showNotification('Error adding system card.', 'error');
+                }
+            } else {
+                showNotification('Please fill in all fields.', 'error');
+            }
+        });
+
+        // Update displaySystemCards function to include the image
+        function displaySystemCards(cards) {
+            const cardListElement = document.getElementById('system-card-list');
+            cardListElement.innerHTML = '';
+            for (const key in cards) {
+                if (cards.hasOwnProperty(key)) {
+                    const card = cards[key];
+                    const cardItem = document.createElement('div');
+                    cardItem.className = 'card-item';
+                    cardItem.innerHTML = `
+                <span>${card.name} (${card.rarity})</span>
+                <img src="${card.image}" alt="${card.name}" width="50">
+                <button onclick="removeSystemCard('${key}')">Remove</button>
+            `;
+                    cardListElement.appendChild(cardItem);
+                }
+            }
+        }
+
+
+
+        window.removeSystemCard = async function (cardName) {
+            const cardRef = ref(db, `system-cards/${cardName}`);
+            try {
+                await remove(cardRef);
+                showNotification('System card removed successfully!', 'success');
+                await fetchSystemCards();
+            } catch (error) {
+                console.error('Error removing system card:', error);
+                showNotification('Error removing system card.', 'error');
+            }
+        };
+
+        // Fetch Users
+        async function fetchUsers() {
+            try {
+                const snapshot = await get(usersRef);
+                if (snapshot.exists()) {
+                    const users = snapshot.val();
+                    displayUsers(users);
+                } else {
+                    document.getElementById('user-list').innerHTML = '<p>No users found.</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        }
+
+        // Display Users
+        function displayUsers(users) {
+            const userListElement = document.getElementById('user-list');
+            console.log(userListElement); // This should not be null
+
+            if (userListElement) {
+                userListElement.innerHTML = '';
+                const userSelect = document.getElementById('user-select');
+                userSelect.innerHTML = '<option value="" disabled selected>Select User</option>';
+                for (const key in users) {
+                    if (users.hasOwnProperty(key)) {
+                        const user = users[key];
+                        const userItem = document.createElement('div');
+                        userItem.className = 'user-item';
+                        userItem.innerHTML = `
+                    <span>User ID: ${key}</span>
+                   <button onclick="fetchUserCards('${key}')"></button>
+                `;
+                        // meant to have "Manage Cards" inside, but not needed now a design button
+
+
+                        userListElement.appendChild(userItem);
+
+                        const userOption = document.createElement('option');
+                        userOption.value = key;
+                        userOption.textContent = key;
+                        userSelect.appendChild(userOption);
+                    }
+                }
+            } else {
+                console.error('User list element not found!');
+            }
+        }
+
+
+        // Fetch User Cards
+        async function fetchUserCards(userId) {
+            console.log(`Fetching cards for user: ${userId}`); // Debug message
+            document.getElementById('user-id').value = userId;
+            const userCardsRef = ref(db, `users/${userId}/cards`);
+            try {
+                const snapshot = await get(userCardsRef);
+                if (snapshot.exists()) {
+                    const cards = snapshot.val();
+                    console.log(`Cards for user ${userId}:`, cards); // Debug message
+                    displayCards(cards);
+                } else {
+                    document.getElementById('card-list').innerHTML = '<p>No cards found for this user.</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching user cards:', error);
+            }
+        }
+
+        // Display User Cards
+        function displayCards(cards) {
+            console.log('Displaying cards:', cards); // Debug message
+            const cardListElement = document.getElementById('card-list');
+            cardListElement.innerHTML = '';
+            for (const key in cards) {
+                if (cards.hasOwnProperty(key)) {
+                    const card = cards[key];
+                    const cardItem = document.createElement('div');
+                    cardItem.className = 'card-item';
+                    cardItem.innerHTML = `
+                <span>${card.name} (${card.rarity})</span>
+                <button onclick="editCard('${card.name}', '${card.rarity}', '${card.image}', '${key}')">Edit</button>
+                <button onclick="removeCard('${key}')">Remove</button>
+            `;
+                    cardListElement.appendChild(cardItem);
+                }
+            }
+        }
+
+
+        // Edit a User's Card
+        window.editCard = function (name, rarity, image, userId) {
+            document.getElementById('card-name').value = name;
+            document.getElementById('card-rarity').value = rarity;
+            document.getElementById('card-image').value = image;
+            document.getElementById('user-id').value = userId;
+            document.getElementById('add-card-btn').style.display = 'none';
+            document.getElementById('edit-card-btn').style.display = 'block';
+        };
+
+        // Remove a User's Card
+        window.removeCard = async function (cardName) {
+            const userId = document.getElementById('user-id').value;
+            const cardRef = ref(db, `users/${userId}/cards/${cardName}`);
+            try {
+                await remove(cardRef);
+                showNotification('Card removed successfully!', 'success');
+                await fetchUserCards(userId);
+            } catch (error) {
+                console.error('Error removing card:', error);
+                showNotification('Error removing card.', 'error');
+            }
+        };
+
+        // Event Listener for Action Button
+        document.getElementById('action-btn').addEventListener('click', async () => {
+            const action = document.getElementById('action-select').value;
+            const userId = document.getElementById('user-select').value;
+            const name = document.getElementById('card-name').value;
+            const rarity = document.getElementById('card-rarity').value;
+            const image = document.getElementById('card-image').value;
+
+            if (action === 'view') {
+                await fetchUserCards(userId);
+            } else if (action === 'add') {
+                if (name && rarity && image) {
+                    const newCardRef = ref(db, `users/${userId}/cards/${name}`);
+                    try {
+                        await update(newCardRef, { name, rarity, image });
+                        showNotification('Card added successfully!', 'success');
+                        await fetchUserCards(userId);
+                    } catch (error) {
+                        console.error('Error adding card:', error);
+                        showNotification('Error adding card.', 'error');
+                    }
+                } else {
+                    showNotification('Please fill in all fields.', 'error');
+                }
+            } else if (action === 'remove') {
+                const cardRef = ref(db, `users/${userId}/cards/${name}`);
+                try {
+                    await remove(cardRef);
+                    showNotification('Card removed successfully!', 'success');
+                    await fetchUserCards(userId);
+                } catch (error) {
+                    console.error('Error removing card:', error);
+                    showNotification('Error removing card.', 'error');
+                }
+            }
+        });
+
+        // Notification Function
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initial fetch of system cards and users
+        fetchSystemCards();
+        fetchUsers();
+    </script>
+</body>
+
+</html>
