@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Team Waffles</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2b2b2b;
+            margin: 0;
+            padding: 0;
+            color: #f5f5f5;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #444;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #61dafb;
+        }
+
+        .card {
+            background-color: #3e3e3e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #a5fbb5;
+            margin-bottom: 10px;
+        }
+
+        .card label, .card input, .card button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        input, button {
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        button {
+            background-color: #a5fbb5;
+            color: #2b2b2b;
+            border: 2px solid #61dafb;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #61dafb;
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #f5f5f5;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #61dafb;
+            color: #2b2b2b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel - Team Waffles</h1>
+        <div class="card">
+            <h2>Add User Points</h2>
+            <label for="points-user-id">User ID:</label>
+            <input type="text" id="points-user-id">
+            <label for="points-value">Points:</label>
+            <input type="number" id="points-value">
+            <label for="admin-name">Admin Name:</label>
+            <input type="text" id="admin-name">
+            <button onclick="updateUserPoints(
+                document.getElementById('points-user-id').value,
+                parseInt(document.getElementById('points-value').value, 10),
+                document.getElementById('admin-name').value
+            )">Update Points</button>
+        </div>
+        <div class="card">
+            <h2>Update Recent Zooms</h2>
+            <label for="zooms-user-id">User ID:</label>
+            <input type="text" id="zooms-user-id">
+            <label for="zoom-name">Zoom Name:</label>
+            <input type="text" id="zoom-name">
+            <label for="admin-name-zoom">Admin Name:</label>
+            <input type="text" id="admin-name-zoom">
+            <button onclick="updateUserZooms(
+                document.getElementById('zooms-user-id').value,
+                document.getElementById('zoom-name').value,
+                document.getElementById('admin-name-zoom').value
+            )">Update Zoom</button>
+        </div>
+        <div class="card">
+            <h2>User Points</h2>
+            <table id="users-points-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>User ID</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically updated list of users and their points -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+        import { getDatabase, ref, get, set, update, push } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js';
+      
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+      
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+      
+        async function loadUserPoints() {
+          const usersRef = ref(db, 'users');
+          const snapshot = await get(usersRef);
+          const users = snapshot.val();
+          const usersPointsTable = document.getElementById("users-points-table").getElementsByTagName('tbody')[0];
+          usersPointsTable.innerHTML = '';
+          if (users) {
+            const sortedUsers = Object.entries(users)
+              .sort(([, a], [, b]) => (b.points || 0) - (a.points || 0));
+            sortedUsers.forEach(([userId, user], index) => {
+              const tr = document.createElement("tr");
+              const tdRank = document.createElement("td");
+              tdRank.textContent = index + 1;
+              const tdUserId = document.createElement("td");
+              tdUserId.textContent = userId;
+              const tdPoints = document.createElement("td");
+              tdPoints.textContent = user.points || 0;
+              tr.appendChild(tdRank);
+              tr.appendChild(tdUserId);
+              tr.appendChild(tdPoints);
+              usersPointsTable.appendChild(tr);
+            });
+          }
+        }
+      
+        async function updateUserPoints(userId, points, adminName) {
+          const userRef = ref(db, `users/${userId}`);
+          const userSnapshot = await get(userRef);
+          const user = userSnapshot.val();
+          const timestamp = new Date().toLocaleString();
+          // Update total points ensuring it doesn't go below zero
+          const newPoints = Math.max((user.points || 0) + points, 0);
+          await update(userRef, { points: newPoints });
+          // Log recent points awarded
+          const pointsRef = ref(db, `users/${userId}/recentPoints`);
+          const newPointRef = push(pointsRef);
+          await set(newPointRef, { points, admin: adminName, timestamp });
+          loadUserPoints(); // Refresh points table after update
+        }
+      
+        async function updateUserZooms(userId, zoomName, adminName) {
+          const timestamp = new Date().toLocaleString();
+          const zoomsRef = ref(db, `users/${userId}/recentZooms`);
+          const newZoomRef = push(zoomsRef);
+          await set(newZoomRef, { zoomName, admin: adminName, timestamp });
+        }
+      
+        document.addEventListener('DOMContentLoaded', () => {
+          loadUserPoints();
+        });
+      
+        window.updateUserPoints = updateUserPoints;
+        window.updateUserZooms = updateUserZooms;
+      </script>
+      
+</body>
+</html>
