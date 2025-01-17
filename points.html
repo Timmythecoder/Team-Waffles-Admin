@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <script type="module" defer src="admin.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .users-list div {
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+
+        <div class="section">
+            <label for="admin-name">Admin Name:</label>
+            <input type="text" id="admin-name" placeholder="Enter admin name">
+
+            <label for="reason-dropdown">Reason for Awarding Points:</label>
+            <select id="reason-dropdown">
+                <option value="Joining POINTS">Joining POINTS</option>
+                <option value="Participation">Participation</option>
+                <option value="Special Achievement">Special Achievement</option>
+                <option value="Compensation">Compensation</option>
+                <option value="Gift">Gift</option>
+                <option value="Swearing">Swearing</option>
+                <option value="Bullying">Bullying</option>
+                <option value="Rude">Rude</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <label for="points-value">Points to Award:</label>
+            <input type="number" id="points-value" placeholder="Enter points amount">
+            <button onclick="awardPoints()">Award Points</button>
+        </div>
+
+        <div class="section">
+            <label for="zoom-dropdown">Log a Zoom Meeting:</label>
+            <select id="zoom-dropdown">
+                <option value="Weekday Zoom Meeting">Weekday Zoom Meeting</option>
+                <option value="Weekend Zoom Meeting">Weekend Zoom Meeting</option>
+                <option value="Other/Private Zoom Meeting">Other/Private Zoom Meeting</option>
+            </select>
+            <button onclick="logzoomName()">Log Zoom Meeting</button>
+        </div>
+
+        <div class="section">
+            <label>Select Users:</label>
+            <div class="users-list" id="users-list">
+                <!-- Users will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+        import { getDatabase, ref, get, set, push } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true // Enable 12-hour format with AM/PM
+    };
+    return new Intl.DateTimeFormat('en-GB', options).format(date);
+}
+
+
+        async function loadUsers() {
+            const usersRef = ref(db, 'users');
+            const snapshot = await get(usersRef);
+            const users = snapshot.val();
+            const usersList = document.getElementById("users-list");
+
+            usersList.innerHTML = "";
+
+            if (users) {
+                Object.keys(users).forEach(userId => {
+                    const userDiv = document.createElement("div");
+                    userDiv.innerHTML = `
+                        <input type="checkbox" value="${userId}" id="user-${userId}">
+                        <label for="user-${userId}">${userId}</label>
+                    `;
+                    usersList.appendChild(userDiv);
+                });
+            }
+        }
+
+        async function awardPoints() {
+            const points = parseInt(document.getElementById("points-value").value, 10);
+            const adminName = document.getElementById("admin-name").value;
+            const reason = document.getElementById("reason-dropdown").value;
+            const selectedUsers = Array.from(document.querySelectorAll(".users-list input:checked"))
+                .map(input => input.value);
+
+            if (selectedUsers.length === 0 || isNaN(points) || !adminName) {
+                alert("Select users, enter a valid points value, and provide the admin name!");
+                return;
+            }
+
+            const timestamp = Date.now();
+            const formattedTimestamp = formatTimestamp(timestamp);
+
+            for (const userId of selectedUsers) {
+                const userRef = ref(db, `users/${userId}`);
+                const userSnapshot = await get(userRef);
+                const user = userSnapshot.val() || { points: 0 };
+                const newPoints = user.points + points;
+
+                await set(userRef, { ...user, points: newPoints });
+                const historyRef = push(ref(db, `users/${userId}/recentPoints`));
+                await set(historyRef, {
+                    points,
+                    admin: `${adminName} - ${reason}`,
+                    timestamp: formattedTimestamp
+                });
+            }
+
+            alert("Points awarded successfully!");
+            loadUsers();
+        }
+
+        async function logzoomName() {
+            const adminName = document.getElementById("admin-name").value;
+            const zoomName = document.getElementById("zoom-dropdown").value;
+            const selectedUsers = Array.from(document.querySelectorAll(".users-list input:checked"))
+                .map(input => input.value);
+
+            if (!adminName || selectedUsers.length === 0) {
+                alert("Please enter the admin name and select users to log the meeting!");
+                return;
+            }
+
+            const timestamp = Date.now();
+            const formattedTimestamp = formatTimestamp(timestamp);
+
+            for (const userId of selectedUsers) {
+                const zoomRef = push(ref(db, `users/${userId}/recentZooms`));
+                await set(zoomRef, {
+                    zoomName,
+                    admin: adminName,
+                    timestamp: formattedTimestamp
+                });
+            }
+
+            alert("Zoom meeting logged successfully!");
+        }
+
+        window.awardPoints = awardPoints;
+        window.logzoomName = logzoomName;
+
+        loadUsers();
+    </script>
+</body>
+</html>

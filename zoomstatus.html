@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
+        import { getDatabase, ref, set, get, remove } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const zoomRef = ref(db, 'content/zoom/nextMeeting');
+        
+        // Admin Panel Elements
+        const zoomForm = document.getElementById("zoom-form");
+        const meetingTitleInput = document.getElementById("meeting-title");
+        const meetingLinkInput = document.getElementById("meeting-link");
+        const meetingTimeInput = document.getElementById("meeting-time");
+        const adminStatus = document.getElementById("admin-status");
+        const deleteButton = document.getElementById("delete-meeting");
+    
+        // Load Existing Zoom Meeting Details into the Form
+        function loadAdminZoomDetails() {
+            get(zoomRef).then((snapshot) => {
+                const zoomData = snapshot.val();
+                if (zoomData) {
+                    meetingTitleInput.value = zoomData.title || "";
+                    meetingLinkInput.value = zoomData.link || "";
+                    meetingTimeInput.value = new Date(zoomData.time).toISOString().slice(0, 16);
+                } else {
+                    adminStatus.textContent = "No upcoming meeting found.";
+                    adminStatus.style.color = "orange";
+                }
+            }).catch((error) => {
+                adminStatus.textContent = `Error: ${error.message}`;
+                adminStatus.style.color = "red";
+            });
+        }
+    
+        // Update Zoom Meeting Details in Firebase
+        zoomForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+    
+            const title = meetingTitleInput.value.trim();
+            const link = meetingLinkInput.value.trim();
+            const time = new Date(meetingTimeInput.value).toISOString();
+    
+            if (!title || !link || !time) {
+                adminStatus.textContent = "All fields are required.";
+                adminStatus.style.color = "red";
+                return;
+            }
+    
+            set(zoomRef, { title, link, time })
+                .then(() => {
+                    adminStatus.textContent = "Meeting updated successfully!";
+                    adminStatus.style.color = "green";
+                })
+                .catch((error) => {
+                    adminStatus.textContent = `Error: ${error.message}`;
+                    adminStatus.style.color = "red";
+                });
+        });
+    
+        // Delete Zoom Meeting
+        deleteButton.addEventListener("click", () => {
+            if (confirm("Are you sure you want to delete the Zoom meeting?")) {
+                remove(zoomRef)
+                    .then(() => {
+                        adminStatus.textContent = "Meeting deleted successfully!";
+                        adminStatus.style.color = "green";
+                        loadAdminZoomDetails();  // Reload to clear the form
+                    })
+                    .catch((error) => {
+                        adminStatus.textContent = `Error: ${error.message}`;
+                        adminStatus.style.color = "red";
+                    });
+            }
+        });
+    
+        // Initialize Admin Panel
+        loadAdminZoomDetails();
+    </script>
+</head>
+<style>
+    /* Style remains unchanged */
+    #admin-panel {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    margin: 20px auto;
+    color: #fff;
+}
+
+#admin-panel h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#zoom-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#zoom-form label {
+    font-weight: bold;
+}
+
+#zoom-form input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+}
+
+#zoom-form button {
+    padding: 10px;
+    background-color: #28a745;
+    border: none;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#zoom-form button:hover {
+    background-color: #218838;
+}
+
+#delete-meeting {
+    padding: 10px;
+    background-color: #dc3545;
+    border: none;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#delete-meeting:hover {
+    background-color: #c82333;
+}
+
+#admin-status {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+}
+</style>
+
+<body>
+    <div id="admin-panel">
+        <h2>Manage Zoom Meetings</h2>
+        <form id="zoom-form">
+            <label for="meeting-title">Meeting Title:</label>
+            <input type="text" id="meeting-title" placeholder="Enter meeting title" required />
+    
+            <label for="meeting-link">Meeting Link:</label>
+            <input type="url" id="meeting-link" placeholder="Enter Zoom meeting link" required />
+    
+            <label for="meeting-time">Meeting Time:</label>
+            <input type="datetime-local" id="meeting-time" required />
+    
+            <button type="submit">Update Meeting</button>
+        </form>
+        <button id="delete-meeting">Delete Meeting</button>
+        <div id="admin-status"></div>
+    </div>
+</body>
+</html>

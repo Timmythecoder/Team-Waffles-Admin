@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Ad Control</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #e9ecef;
+      margin: 0;
+      padding: 20px;
+      color: #343a40;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #007bff;
+    }
+    .ad-entry {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 80%;
+      max-width: 600px;
+      margin: 10px auto;
+      transition: transform 0.2s;
+    }
+    .ad-entry:hover {
+      transform: translateY(-2px);
+    }
+    .ad-entry h2 {
+      margin-bottom: 15px;
+      color: #007bff;
+    }
+    .ad-entry input {
+      margin: 10px 0;
+      padding: 10px;
+      width: calc(100% - 20px);
+      border: 1px solid #ced4da;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .ad-entry button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+    .ad-entry button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin - Ad Management</h1>
+
+  <div id="ad-form">
+    <div class="ad-entry">
+      <h2>First Ad</h2>
+      <input type="text" id="firstAdText" placeholder="Enter ad text" required>
+      <input type="text" id="firstAdImage" placeholder="Enter image URL (optional)">
+      <input type="text" id="firstAdVideo" placeholder="Enter video URL (optional)">
+      <button onclick="saveAd('firstAd')">Save First Ad</button>
+    </div>
+
+    <div class="ad-entry">
+      <h2>Second Ad</h2>
+      <input type="text" id="secondAdText" placeholder="Enter ad text" required>
+      <input type="text" id="secondAdImage" placeholder="Enter image URL (optional)">
+      <input type="text" id="secondAdVideo" placeholder="Enter video URL (optional)">
+      <button onclick="saveAd('secondAd')">Save Second Ad</button>
+    </div>
+
+    <div class="ad-entry">
+      <h2>Third Ad</h2>
+      <input type="text" id="thirdAdText" placeholder="Enter ad text" required>
+      <input type="text" id="thirdAdImage" placeholder="Enter image URL (optional)">
+      <input type="text" id="thirdAdVideo" placeholder="Enter video URL (optional)">
+      <button onclick="saveAd('thirdAd')">Save Third Ad</button>
+    </div>
+
+    <div class="ad-entry">
+      <h2>Fourth Ad</h2>
+      <input type="text" id="fourthAdText" placeholder="Enter ad text" required>
+      <input type="text" id="fourthAdImage" placeholder="Enter image URL (optional)">
+      <input type="text" id="fourthAdVideo" placeholder="Enter video URL (optional)">
+      <button onclick="saveAd('fourthAd')">Save Fourth Ad</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+  <script>
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function saveAd(adName) {
+      const adData = {
+        text: document.getElementById(`${adName}Text`).value,
+        image: document.getElementById(`${adName}Image`).value || null,
+        video: document.getElementById(`${adName}Video`).value || null,
+      };
+
+      db.ref(`content/ads/${adName}`).set(adData)
+        .then(() => {
+          alert(`${adName.charAt(0).toUpperCase() + adName.slice(1)} saved!`);
+          clearInputs(adName);
+        })
+        .catch((error) => {
+          alert("Error saving ad: " + error);
+        });
+    }
+
+    function clearInputs(adName) {
+      document.getElementById(`${adName}Text`).value = '';
+      document.getElementById(`${adName}Image`).value = '';
+      document.getElementById(`${adName}Video`).value = '';
+    }
+  </script>
+</body>
+</html>

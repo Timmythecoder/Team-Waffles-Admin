@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Add, Edit, View, and Delete Promo Codes</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2b2b2b;
+            margin: 0;
+            padding: 0;
+            color: #f5f5f5;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #444;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #61dafb;
+        }
+
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            width: 80%;
+            font-size: 1em;
+        }
+
+        button {
+            background-color: #a5fbb5;
+            color: #2b2b2b;
+            font-size: 1.2em;
+            padding: 10px 20px;
+            border: 2px solid #61dafb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #61dafb;
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        .home-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #33aaa8;
+            color: #2b2b2b;
+            border: 2px solid #61dafb;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 1.2em;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .home-button:hover {
+            background-color: #61dafb;
+            color: #fff;
+        }
+
+        .promo-list {
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .promo-item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #555;
+            border-radius: 5px;
+        }
+
+        .promo-item button {
+            background-color: #f1c40f;
+            color: #2b2b2b;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .promo-item .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Admin Panel - Add, Edit, View, and Delete Promo Codes</h1>
+
+        <!-- Add Promo Code -->
+        <div class="input-group">
+            <input type="text" id="promo-code" placeholder="Enter Promo Code">
+            <input type="number" id="points" placeholder="Enter Points" min="1">
+            <button id="add-code-btn">Add Promo Code</button>
+        </div>
+
+        <!-- Promo List -->
+        <div class="promo-list">
+            <h2>Existing Promo Codes</h2>
+            <div id="promo-codes"></div>
+        </div>
+
+        <a href="dashboard.html" class="home-button">Back To Dashboard</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, set, get, update, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Fetch and display existing promo codes
+        async function displayPromoCodes() {
+            const promoRef = ref(db, 'promos');
+            const promoSnapshot = await get(promoRef);
+            const promoCodesDiv = document.getElementById('promo-codes');
+            promoCodesDiv.innerHTML = '';  // Clear previous list
+
+            if (promoSnapshot.exists()) {
+                const promoCodes = promoSnapshot.val();
+                for (const promoCode in promoCodes) {
+                    const promo = promoCodes[promoCode];
+                    const promoDiv = document.createElement('div');
+                    promoDiv.classList.add('promo-item');
+                    promoDiv.innerHTML = `${promo.code} - ${promo.points} points
+                        <button class="edit-btn" data-code="${promo.code}">Edit</button>
+                        <button class="delete-btn" data-code="${promo.code}">Delete</button>`;
+
+                    // Edit Promo Code functionality
+                    promoDiv.querySelector('.edit-btn').addEventListener('click', () => {
+                        document.getElementById('promo-code').value = promo.code;
+                        document.getElementById('points').value = promo.points;
+                        document.getElementById('add-code-btn').textContent = 'Update Promo Code';
+                        document.getElementById('add-code-btn').removeEventListener('click', addPromoCode);
+                        document.getElementById('add-code-btn').addEventListener('click', () => {
+                            updatePromoCode(promo.code);
+                        });
+                    });
+
+                    // Delete Promo Code functionality
+                    promoDiv.querySelector('.delete-btn').addEventListener('click', () => {
+                        if (confirm(`Are you sure you want to delete the promo code "${promo.code}"?`)) {
+                            deletePromoCode(promo.code);
+                        }
+                    });
+
+                    promoCodesDiv.appendChild(promoDiv);
+                }
+            } else {
+                promoCodesDiv.innerHTML = 'No promo codes available.';
+            }
+        }
+
+        // Add Promo Code
+        function addPromoCode() {
+            const promoCode = document.getElementById('promo-code').value.trim();
+            const points = parseInt(document.getElementById('points').value.trim(), 10);
+
+            if (promoCode && points && points > 0) {
+                const promoRef = ref(db, `promos/${promoCode}`);
+                set(promoRef, {
+                    code: promoCode,
+                    points: points
+                })
+                .then(() => {
+                    alert(`Promo code "${promoCode}" with ${points} points added successfully!`);
+                    document.getElementById('promo-code').value = '';
+                    document.getElementById('points').value = '';
+                    displayPromoCodes();  // Refresh promo list
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('An error occurred while adding the promo code.');
+                });
+            } else {
+                alert('Please enter a valid promo code and point value.');
+            }
+        }
+
+        // Update Promo Code
+        function updatePromoCode(existingCode) {
+            const newPoints = parseInt(document.getElementById('points').value.trim(), 10);
+            const promoCode = document.getElementById('promo-code').value.trim();
+
+            if (promoCode && newPoints && newPoints > 0) {
+                const promoRef = ref(db, `promos/${existingCode}`);
+                update(promoRef, {
+                    points: newPoints
+                })
+                .then(() => {
+                    alert(`Promo code "${promoCode}" updated to ${newPoints} points!`);
+                    document.getElementById('promo-code').value = '';
+                    document.getElementById('points').value = '';
+                    document.getElementById('add-code-btn').textContent = 'Add Promo Code';
+                    displayPromoCodes();  // Refresh promo list
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('An error occurred while updating the promo code.');
+                });
+            } else {
+                alert('Please enter a valid promo code and point value.');
+            }
+        }
+
+        // Delete Promo Code
+        function deletePromoCode(promoCode) {
+            const promoRef = ref(db, `promos/${promoCode}`);
+            remove(promoRef)
+                .then(() => {
+                    alert(`Promo code "${promoCode}" deleted successfully!`);
+                    displayPromoCodes();  // Refresh promo list
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('An error occurred while deleting the promo code.');
+                });
+        }
+
+        // Add event listener to the "Add Promo Code" button
+        document.getElementById('add-code-btn').addEventListener('click', addPromoCode);
+
+        // Load and display existing promo codes when the page loads
+        window.onload = displayPromoCodes;
+    </script>
+</body>
+
+</html>

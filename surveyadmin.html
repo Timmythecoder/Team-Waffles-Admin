@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Waffles Admin Panel</title>
+  <script type="module" src="surveyadmin.js" defer></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+
+  <style>
+    /* Add your styles here */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2c2f38;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    #admin-panel {
+      width: 80%;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #3a4049;
+      border-radius: 8px;
+    }
+    h1 {
+      text-align: center;
+      color: #1e90ff;
+      margin-bottom: 20px;
+    }
+    form {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    input[type="text"], input[type="number"], select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 70%;
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #survey-list, #user-management, #recent-points-list {
+      margin-top: 30px;
+    }
+    .survey-item, .user-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .survey-item button, .user-item button {
+      background-color: #e74c3c;
+    }
+    .survey-item button:hover, .user-item button:hover {
+      background-color: #c0392b;
+    }
+    .survey-item, .user-item {
+      padding: 10px;
+      background-color: #444;
+      border-radius: 6px;
+    }
+    .delete-btn {
+  background-color: red;
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body>
+  <div id="admin-panel">
+    <h1>Admin Panel</h1>
+    
+    <h2>Survey Management</h2>
+    <div>
+      <label for="survey-question">Question:</label>
+      <input type="text" id="survey-question" />
+      <label for="question-type">Type:</label>
+      <select id="question-type">
+        <option value="text">Text</option>
+        <option value="multiple-choice">Multiple Choice</option>
+      </select>
+      <button id="add-survey">Add Question</button>
+    </div>
+
+    <h2>Survey List</h2>
+    <div id="survey-list"></div>
+
+    <h2>Award Points</h2>
+    <div>
+      <label for="admin-name">Admin Name:</label>
+      <input type="text" id="admin-name" placeholder="Enter admin name" />
+      <label for="user-id">User ID:</label>
+      <input type="text" id="user-id" placeholder="Enter user ID" />
+      <label for="points-to-add">Points:</label>
+      <input type="number" id="points-to-add" placeholder="Enter points" />
+      <button id="award-points">Award Points</button>
+
+
+    <h2>Survey Completions</h2>
+    <div id="userManagement">Loading...</div>
+
+    <h2>Recent Points</h2>
+    <div id="recent-points-list"></div>
+
+    <h2>User Management</h2>
+    <div id="user-management"></div>
+
+  </div>
+</div>
+</body>
+</html>

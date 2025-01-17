@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Giveaways</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+        }
+
+        .card h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .card p {
+            margin: 10px 0;
+        }
+
+        .giveaway-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .delete-button {
+            background-color: #FF5733;
+        }
+
+        .delete-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel - Manage Giveaways</h1>
+        <div id="giveaways-list"></div>
+
+        <h3>Create New Giveaway</h3>
+        <form id="create-giveaway-form">
+            <label>Name: <input type="text" id="giveaway-name" required></label><br>
+            <label>Description: <input type="text" id="giveaway-description" required></label><br>
+            <label>Ticket Cost: <input type="number" id="ticket-cost" required></label><br>
+            <label>End Time: <input type="datetime-local" id="end-time" required></label><br>
+            <label>Admin Name: <input type="text" id="admin-name" required></label><br>
+            <button type="submit">Create Giveaway</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+        import { getDatabase, ref, get, set, update, remove } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const giveawaysList = document.getElementById('giveaways-list');
+            const createGiveawayForm = document.getElementById('create-giveaway-form');
+
+            async function loadGiveaways() {
+                const giveawaysRef = ref(db, 'giveaways');
+                const snapshot = await get(giveawaysRef);
+                const giveaways = snapshot.val();
+
+                giveawaysList.innerHTML = '';
+
+                if (giveaways) {
+                    Object.entries(giveaways).forEach(([id, data]) => {
+                        const activeStatus = data.active ? 'Active' : 'Completed';
+
+                        const div = document.createElement('div');
+                        div.classList.add('card');
+                        div.innerHTML = `
+                            <h2>${data.name} (${activeStatus})</h2>
+                            <p>${data.description}</p>
+                            <p>Ticket Cost: ${data.ticketCost} points</p>
+                            <p>Created By: ${data.adminName}</p>
+                            <div class="giveaway-actions">
+                                <button onclick="toggleGiveawayStatus('${id}')">Toggle Status</button>
+                                <button onclick="concludeGiveaway('${id}')">Conclude Giveaway</button>
+                                <button class="delete-button" onclick="deleteGiveaway('${id}')">Delete Giveaway</button>
+                            </div>
+                        `;
+                        giveawaysList.appendChild(div);
+                    });
+                } else {
+                    giveawaysList.innerHTML = '<p>No giveaways available at the moment.</p>';
+                }
+            }
+
+            window.toggleGiveawayStatus = async function(giveawayId) {
+                const giveawayRef = ref(db, `giveaways/${giveawayId}`);
+                const giveawaySnapshot = await get(giveawayRef);
+                const giveawayData = giveawaySnapshot.val();
+
+                if (giveawayData) {
+                    const newStatus = !giveawayData.active;
+                    await update(giveawayRef, { active: newStatus });
+                    loadGiveaways(); // Refresh the list
+                }
+            };
+
+            window.concludeGiveaway = async function(giveawayId) {
+                const giveawayRef = ref(db, `giveaways/${giveawayId}`);
+                const giveawaySnapshot = await get(giveawayRef);
+                const giveawayData = giveawaySnapshot.val();
+
+                if (giveawayData && giveawayData.entries) {
+                    const entries = giveawayData.entries;
+                    const winnerId = Object.keys(entries)[Math.floor(Math.random() * Object.keys(entries).length)];
+
+                    // Update giveaway to mark it as concluded and announce winner
+                    await update(giveawayRef, { active: false, winner: winnerId });
+                    loadGiveaways(); // Refresh the list
+                    alert(`The winner is ${winnerId}!`);
+                }
+            };
+
+            window.deleteGiveaway = async function(giveawayId) {
+                const giveawayRef = ref(db, `giveaways/${giveawayId}`);
+                await remove(giveawayRef); // Remove giveaway from the database
+                loadGiveaways(); // Refresh the list after deletion
+                alert('Giveaway deleted successfully!');
+            };
+
+            createGiveawayForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const name = document.getElementById('giveaway-name').value;
+                const description = document.getElementById('giveaway-description').value;
+                const ticketCost = document.getElementById('ticket-cost').value;
+                const endTime = new Date(document.getElementById('end-time').value).getTime();
+                const adminName = document.getElementById('admin-name').value;
+
+                const newGiveawayRef = ref(db, 'giveaways/' + Date.now());
+                await set(newGiveawayRef, {
+                    name,
+                    description,
+                    ticketCost,
+                    endTime,
+                    active: true,
+                    adminName,
+                    entries: {}
+                });
+
+                loadGiveaways(); // Refresh the list
+            });
+
+            loadGiveaways();
+        });
+    </script>
+</body>
+</html>

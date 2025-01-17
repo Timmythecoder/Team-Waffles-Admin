@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Team Waffles</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .admin-panel {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .admin-panel h2 {
+            text-align: center;
+        }
+
+        .admin-panel input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        .admin-panel button {
+            width: 100%;
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .admin-panel button:hover {
+            background-color: #555;
+        }
+
+        .fanart-list {
+            margin-top: 20px;
+        }
+
+        .fanart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .fanart-item span {
+            word-wrap: break-word;
+            max-width: 80%;
+        }
+
+        .fanart-item button {
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .fanart-item button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-panel">
+        <h2>Admin Panel - Manage Loading Images</h2>
+        <label for="fanartImage">Fanart Image URL:</label>
+        <input type="text" id="fanartImage" placeholder="Enter Fanart Image URL">
+        
+        <label for="placeholderText">Placeholder Text:</label>
+        <input type="text" id="placeholderText" placeholder="Enter Placeholder Text">
+
+        <button onclick="addPlaceholderText()">Add Fanart with Text</button>
+
+        <div class="fanart-list" id="fanartList"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRkRk",
+            authDomain: "team-waffles-acs.firebaseapp.com",
+            projectId: "team-waffles-acs",
+            storageBucket: "team-waffles-acs.appspot.com",
+            messagingSenderId: "636130806538",
+            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
+            measurementId: "G-HEC29JWVFL"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Function to add fanart and placeholder text to Firebase
+        function addPlaceholderText() {
+            const fanartImage = document.getElementById("fanartImage").value;
+            const placeholderText = document.getElementById("placeholderText").value;
+
+            if (fanartImage && placeholderText) {
+                const fanartRef = db.ref("content/fanart");
+                const newFanartRef = fanartRef.push();
+                newFanartRef.set({
+                    image: fanartImage,
+                    placeholderText: placeholderText
+                })
+                .then(() => {
+                    alert("Fanart with placeholder text added successfully!");
+                    document.getElementById("fanartImage").value = '';
+                    document.getElementById("placeholderText").value = '';
+                    fetchFanartList();
+                })
+                .catch((error) => alert("Error: " + error.message));
+            } else {
+                alert("Please provide both image URL and placeholder text.");
+            }
+        }
+
+        // Function to fetch and display the list of fanart
+        function fetchFanartList() {
+            const fanartRef = db.ref("content/fanart");
+            fanartRef.on("value", (snapshot) => {
+                const fanartList = document.getElementById("fanartList");
+                fanartList.innerHTML = ''; // Clear the list
+                const data = snapshot.val();
+                for (const key in data) {
+                    const item = data[key];
+                    const fanartItem = document.createElement("div");
+                    fanartItem.className = "fanart-item";
+                    fanartItem.innerHTML = `
+                        <span>${item.image} - ${item.placeholderText}</span>
+                        <button onclick="deleteFanart('${key}')">Delete</button>
+                    `;
+                    fanartList.appendChild(fanartItem);
+                }
+            });
+        }
+
+        // Function to delete a fanart entry
+        function deleteFanart(key) {
+            const fanartRef = db.ref(`content/fanart/${key}`);
+            fanartRef.remove()
+                .then(() => {
+                    alert("Fanart deleted successfully!");
+                    fetchFanartList();
+                })
+                .catch((error) => alert("Error: " + error.message));
+        }
+
+        // Initial fetch of the fanart list
+        fetchFanartList();
+    </script>
+</body>
+</html>

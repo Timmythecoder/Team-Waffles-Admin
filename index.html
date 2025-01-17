@@ -3,242 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Team Waffles Points Administrator</title>
-    <link rel="stylesheet" href="admin.css">
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
-        import { getDatabase, ref, onValue, remove, update, set, get } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAPl8uaPdFS89m6X4M3OrzTSSeHhw-GkRk",
-            authDomain: "team-waffles-acs.firebaseapp.com",
-            projectId: "team-waffles-acs",
-            storageBucket: "team-waffles-acs.firebasestorage.app",
-            messagingSenderId: "636130806538",
-            appId: "1:636130806538:web:281c39ba2e72debd2748f3",
-            measurementId: "G-HEC29JWVFL"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
-
-        // Function to send log to Discord
-        function sendToDiscordLog(action, email) {
-            const webhookURL = 'https://discord.com/api/webhooks/1304013347855011850/aAnq9pnnFezZnDlc37WAzhBnbNLAftWNR4StYccdrKlA5hqZRLIsZwXTQzkoJyHqVBM2'; 
-
-            const payload = {
-                content: `**Action:** ${action}\n**Email:** ${email}\n**Time:** ${new Date().toLocaleString()}`
-            };
-
-            fetch(webhookURL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch((error) => console.error('Error sending log to Discord:', error));
+    <title>Admin Panel - Team Waffles</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #2b2b2b;
+            color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
         }
 
-        window.loadUserPoints = function () {
-    const usersRef = ref(db, 'users'); // Reference to the 'users' node in the database
-    onValue(usersRef, (snapshot) => {
-        const users = snapshot.val();
-        const usersList = document.getElementById("users-list");
-        usersList.innerHTML = ''; // Clear the table
-
-        if (!users) {
-            alert("No users found in the database.");
-            return;
+        h1 {
+            color: #61dafb;
+            font-size: 2.5em;
+            text-align: center;
         }
 
-        // Convert users object into an array and sort by points in descending order
-        const sortedUsers = Object.entries(users).sort((a, b) => b[1].points - a[1].points);
-
-        // Loop through each user and add a row to the table
-        sortedUsers.forEach((user, index) => {
-            const username = user[0];
-            const points = user[1].points || 0; // Default to 0 if no points data is found
-            const rank = index + 1; // Rank starts from 1
-
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${rank}${getOrdinalSuffix(rank)}</td>
-                <td>${username}</td>
-                <td><input type="number" id="points-${username}" value="${points}" min="0"></td>
-                <td>
-                    <button onclick="updatePoints('${username}')">Update</button>
-                    <button onclick="deleteUser('${username}')">Delete</button>
-                </td>
-            `;
-            usersList.appendChild(row);
-        });
-    });
-};
-
-
-        // Add ordinal suffix
-        function getOrdinalSuffix(num) {
-            const j = num % 10,
-                  k = num % 100;
-            if (j === 1 && k !== 11) {
-                return "st";
-            }
-            if (j === 2 && k !== 12) {
-                return "nd";
-            }
-            if (j === 3 && k !== 13) {
-                return "rd";
-            }
-            return "th";
+        .directory {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #444;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
 
-        // Delete user from Firebase
-        window.deleteUser = function(username) {
-            const userRef = ref(db, 'users/' + username);
-            remove(userRef).then(() => {
-                alert('User deleted successfully!');
-                loadUserPoints();
-                const email = localStorage.getItem('userEmail');
-                sendToDiscordLog('Deleted User', email);
-            }).catch((error) => {
-                console.error('Error deleting user:', error);
-                alert('Failed to delete user.');
-            });
-        };
+        .directory h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #a5fbb5;
+        }
 
-        // Update points for user
-        window.updatePoints = function(username) {
-            const newPoints = document.getElementById(`points-${username}`).value;
+        .directory ul {
+            list-style-type: none;
+            padding: 0;
+        }
 
-            if (newPoints !== '') {
-                const userRef = ref(db, 'users/' + username);
-                update(userRef, { points: parseInt(newPoints) }).then(() => {
-                    alert('Points updated successfully!');
-                    loadUserPoints();
-                    const email = localStorage.getItem('userEmail');
-                    sendToDiscordLog(`Updated Points for ${username}`, email);
-                }).catch((error) => {
-                    console.error('Error updating points:', error);
-                    alert('Failed to update points.');
-                });
-            } else {
-                alert('Please enter a valid points value.');
-            }
-        };
+        .directory ul li {
+            margin: 15px 0;
+        }
 
-        // Firebase Authentication - Login
-        window.login = function() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
+        .directory ul li a {
+            color: #f5f5f5;
+            text-decoration: none;
+            font-size: 1.5em;
+            padding: 10px;
+            display: block;
+            background-color: #3e3e3e;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    localStorage.setItem('userEmail', user.email); // Save email to local storage
-                    alert("Logged in as " + user.email);
-                    loadUserPoints();
-                    sendToDiscordLog('Logged In', user.email); // Log to Discord on login
-                })
-                .catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    alert(errorMessage);
-                });
-        };
-
-        // Check if user is authenticated before loading admin content
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById("admin-content").style.display = 'block';
-                document.getElementById("login-form").style.display = 'none';
-            } else {
-                document.getElementById("admin-content").style.display = 'none';
-                document.getElementById("login-form").style.display = 'block';
-            }
-        });
-
-        // Logout function
-        window.logout = function() {
-            signOut(auth).then(() => {
-                alert("Logged out!");
-                loadUserPoints();
-                const email = localStorage.getItem('userEmail');
-                sendToDiscordLog('Logged Out', email);
-            }).catch((error) => {
-                alert(error.message);
-            });
-        };
-
-
-        window.addUser = function() {
-    const newUsername = document.getElementById("new-username").value;
-    const newUserPoints = parseInt(document.getElementById("new-user-points").value);
-
-    if (newUsername && newUserPoints >= 0) {
-        const userRef = ref(db, 'users/' + newUsername);
-
-        // Create new user in Firebase
-        set(userRef, {
-            points: newUserPoints
-        }).then(() => {
-            // Log user creation to the console
-            console.log(`New user created: ${newUsername} with ${newUserPoints} points.`);
-            const email = localStorage.getItem('userEmail');
-            sendToDiscordLog('New User Created', email);
-
-            // Reload the user points table to reflect the changes
-            loadUserPoints();
-        }).catch((error) => {
-            console.error('Error adding user:', error);
-            alert('Failed to add user.');
-        });
-    } else {
-        alert('Please enter a valid username and points.');
-    }
-};
-
-
-
-    </script>
+        .directory ul li a:hover {
+            background-color: #61dafb;
+            color: #2b2b2b;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div id="login-form">
-            <h1>Login to Team Waffles Points Administrator</h1>
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button onclick="login()">Login</button>
-        </div>
 
-        <div id="admin-content" style="display: none;">
-            <h1>Admin Panel - Team Waffles Points Administrator</h1>
-            <button onclick="logout()">Logout</button>
-            <div class="status">
-                <h2>Leaderboard</h2>
-                <table id="pointsTable">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Username</th>
-                            <th>Points</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-list">
-                    </tbody>
-                </table>
-            </div>
+    <h1>Admin Panel - Team Waffles</h1>
 
-            <div class="add-user">
-                <h2>Add New User</h2>
-                <input type="text" id="new-username" placeholder="New Username" required>
-                <input type="number" id="new-user-points" placeholder="Points" required>
-                <button onclick="addUser()">Add User</button>
-            </div>
-
-        </div>
+    <div class="directory">
+        <h2>Admin Tools Directory</h2>
+        <ul>
+            <li><a href="points.html">Point Management</a></li>
+            <li><a href="surveyadmin.html">Survey Management</a></li>
+            <li><a href="tradingcards.html">Trading Card Management</a></li>
+            <li><a href="giveaways.html">Giveaway Management</a></li>
+            <li><a href="promocodes.html">Promo Code Management</a></li>
+            <li><a href="zoomstatus.html">Zoom Status Management</a></li>
+        </ul>
     </div>
+
 </body>
 </html>
